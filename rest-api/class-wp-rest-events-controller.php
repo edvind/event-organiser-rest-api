@@ -22,6 +22,17 @@ class WP_REST_Events_Controller extends WP_REST_Posts_Controller {
 		add_filter( 'rest_pre_insert_event', array( $this, '_add_event_fields_for_database' ), 10, 2 );
 		// Populate occurrence / schedule data for response.
 		add_filter( 'rest_prepare_event', array( $this, '_add_event_fields_for_response' ), 10, 3 );
+		// Pass relevant query-args.
+		add_filter( 'rest_event_query', array( $this, 'pass_rest_params' ), 10, 2 );
+	}
+
+	public function pass_rest_params( $args, $request ) {
+		$args['event_start_after'] = $request->get_param( 'event_start_after' );
+		$args['event_start_before'] = $request->get_param( 'event_start_before' );
+		$args['event_end_after'] = $request->get_param( 'event_end_after' );
+		$args['event_end_before'] = $request->get_param( 'event_end_before' );
+		$args['showpastevents'] = $request->get_param( 'showpastevents' );
+		return $args;
 	}
 
 	public function get_collection_params() {
@@ -59,6 +70,11 @@ class WP_REST_Events_Controller extends WP_REST_Posts_Controller {
 			'description'        => __( 'Limit response to events finishing before a given ISO8601 compliant date or relative datetime string. (inclusive)' ),
 			'type'               => 'string',
 			'format'             => 'date-time',
+			// 'validate_callback'  => 'rest_validate_request_arg',
+		);
+		$params['showpastevents'] = array(
+			'description'        => __( 'Limit response to events finishing before a given ISO8601 compliant date or relative datetime string. (inclusive)' ),
+			'type'               => 'integer',
 			// 'validate_callback'  => 'rest_validate_request_arg',
 		);
 		return array_merge( $params, $orignal_params );
