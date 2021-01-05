@@ -2,15 +2,25 @@
 class WP_REST_Events_Controller extends WP_REST_Posts_Controller {
 
 	private $schedule_fields = array(
-		'start', 'end', 'schedule', 'schedule_meta', 'frequency', 'all_day',
-		'until', 'schedule_last', 'include', 'exclude', 'occurs_by', 'number_occurrences'
+		'start',
+		'end',
+		'schedule',
+		'schedule_meta',
+		'frequency',
+		'all_day',
+		'until',
+		'schedule_last',
+		'include',
+		'exclude',
+		'occurs_by',
+		'number_occurrences',
 	);
 
 	function __construct() {
 		parent::__construct( 'event' );
-		//Populate event schedule fields when creating an event
+		// Populate event schedule fields when creating an event.
 		add_filter( 'rest_pre_insert_event', array( $this, '_add_event_fields_for_database' ), 10, 2 );
-		//Populate occurrence / schedule data for response
+		// Populate occurrence / schedule data for response.
 		add_filter( 'rest_prepare_event', array( $this, '_add_event_fields_for_response' ), 10, 3 );
 	}
 
@@ -18,7 +28,7 @@ class WP_REST_Events_Controller extends WP_REST_Posts_Controller {
 		$orignal_params = parent::get_collection_params();
 		$params         = array();
 
-		//Remove unnecessary/ambigeous parameters
+		// Remove unnecessary/ambigeous parameters.
 		unset( $orignal_params['after'] );
 		unset( $orignal_params['before'] );
 
@@ -31,25 +41,25 @@ class WP_REST_Events_Controller extends WP_REST_Posts_Controller {
 			'description'        => __( 'Limit response to events starting after a given ISO8601 compliant date or relative datetime string. (inclusive)' ),
 			'type'               => 'string',
 			'format'             => 'date-time',
-			//'validate_callback'  => 'rest_validate_request_arg',
+			// 'validate_callback'  => 'rest_validate_request_arg',
 		);
 		$params['event_start_before'] = array(
 			'description'        => __( 'Limit response to events starting before a given ISO8601 compliant date or relative datetime string. (inclusive)' ),
 			'type'               => 'string',
 			'format'             => 'date-time',
-			//'validate_callback'  => 'rest_validate_request_arg',
+			// 'validate_callback'  => 'rest_validate_request_arg',
 		);
 		$params['event_end_after'] = array(
 			'description'        => __( 'Limit response to events finishing after a given ISO8601 compliant date or relative datetime string. (inclusive)' ),
 			'type'               => 'string',
 			'format'             => 'date-time',
-			//'validate_callback'  => 'rest_validate_request_arg',
+			// 'validate_callback'  => 'rest_validate_request_arg',
 		);
 		$params['event_end_before'] = array(
 			'description'        => __( 'Limit response to events finishing before a given ISO8601 compliant date or relative datetime string. (inclusive)' ),
 			'type'               => 'string',
 			'format'             => 'date-time',
-			//'validate_callback'  => 'rest_validate_request_arg',
+			// 'validate_callback'  => 'rest_validate_request_arg',
 		);
 		return array_merge( $params, $orignal_params );
 	}
@@ -58,25 +68,25 @@ class WP_REST_Events_Controller extends WP_REST_Posts_Controller {
 		$data     = $response->get_data();
 		$schema   = $this->get_item_schema();
 
-		//Remove ambigeous data
+		// Remove ambigeous data.
 		unset( $data['date'] );
 		unset( $data['date_gmt'] );
 
-		//Add occurrence data
+		// Add occurrence data.
 		if ( ! empty( $post->occurrence_id ) ) {
 			$data['occurrence_id'] = $post->occurrence_id;
 			$data['start'] = eo_get_the_start( 'c', $post->ID, $post->occurrence_id );
 			$data['end']   = eo_get_the_end( 'c', $post->ID, $post->occurrence_id );
 		} else {
-			//Add schedule data
+			// Add schedule data.
 			$schedule = eo_get_event_schedule( $post->ID );
 
 			foreach ( $this->schedule_fields as $field ) {
 
-				if ( ! isset( $schema['properties'][$field] ) ) {
+				if ( ! isset( $schema['properties'][ $field ] ) ) {
 					continue;
 				}
-				//TODO Move this to validate/sanitize?
+				// TODO Move this to validate/sanitize?
 				switch ( $field ) {
 					case 'start':
 					case 'end':
@@ -123,16 +133,16 @@ class WP_REST_Events_Controller extends WP_REST_Posts_Controller {
 
 		foreach ( $this->schedule_fields as $field ) {
 
-			if ( ! isset( $request[$field] ) || ! isset( $schema['properties'][$field] ) ) {
+			if ( ! isset( $request[ $field ] ) || ! isset( $schema['properties'][ $field ] ) ) {
 				continue;
 			}
-			//TODO Move this to validate/sanitize?
+			// TODO Move this to validate/sanitize?
 			switch ( $field ) {
 				case 'start':
 				case 'end':
 				case 'until':
 					try {
-						$prepared_post->$field = new DateTime( $request[$field], $timezone );
+						$prepared_post->$field = new DateTime( $request[ $field ], $timezone );
 					} catch ( Exception $e ) {
 						return WP_Error( sprintf( 'Error with %s field: %s', $field, $e->getMessage() ) );
 					}
@@ -140,7 +150,7 @@ class WP_REST_Events_Controller extends WP_REST_Posts_Controller {
 				case 'include':
 				case 'exclude':
 					$dates = array();
-					foreach ( $request[$field] as $date ) {
+					foreach ( $request[ $field ] as $date ) {
 						try {
 							$dates[] = new DateTime( $date, $timezone );
 						} catch ( Exception $e ) {
@@ -150,7 +160,7 @@ class WP_REST_Events_Controller extends WP_REST_Posts_Controller {
 					$prepared_post->$field = $dates;
 					break;
 				default:
-					$prepared_post->$field = $request[$field];
+					$prepared_post->$field = $request[ $field ];
 					break;
 			}
 		}
@@ -289,102 +299,107 @@ class WP_REST_Events_Controller extends WP_REST_Posts_Controller {
 
 	protected function add_additional_fields_schema( $schema ) {
 
-		//remove ambigeous properties
+		// remove ambigeous properties.
 		unset( $schema['properties']['date'] );
 		unset( $schema['properties']['date_gmt'] );
 
 		$schema = parent::add_additional_fields_schema( $schema );
-		$schema['properties'] = array_merge( array(
-			'start'       => array(
-				'description'  => __( 'The start date-time of the first occurrence of the event.' ),
-				'type'         => 'string',
-				'context'      => array( 'view', 'edit' ),
-				'arg_options'  => array(
-					//'validate_callback' => 'wp_filter_post_kses',
-					//'sanitize_callback' => 'wp_filter_post_kses',
+		$schema['properties'] = array_merge(
+			array(
+				'start'       => array(
+					'description'  => __( 'The start date-time of the first occurrence of the event.' ),
+					'type'         => 'string',
+					'context'      => array( 'view', 'edit' ),
+					'arg_options'  => array(
+					// 'validate_callback' => 'wp_filter_post_kses',
+					// 'sanitize_callback' => 'wp_filter_post_kses',
+					),
 				),
-			),
-			'end'       => array(
-				'description'  => __( 'The end date-time of the first occurrence of the event.' ),
-				'type'         => 'string',
-				'context'      => array( 'view', 'edit' ),
-				'arg_options'  => array(
-					'sanitize_callback' => 'wp_filter_post_kses',
+				'end'       => array(
+					'description'  => __( 'The end date-time of the first occurrence of the event.' ),
+					'type'         => 'string',
+					'context'      => array( 'view', 'edit' ),
+					'arg_options'  => array(
+						'sanitize_callback' => 'wp_filter_post_kses',
+					),
 				),
-			),
-			'all_day'       => array(
-				'description'  => __( 'Whether the event is all day or not' ),
-				'type'         => 'boolean',
-				'context'      => array( 'view', 'edit' ),
-				'arg_options'  => array(
-					'sanitize_callback' => 'wp_filter_post_kses',
+				'all_day'       => array(
+					'description'  => __( 'Whether the event is all day or not' ),
+					'type'         => 'boolean',
+					'context'      => array( 'view', 'edit' ),
+					'arg_options'  => array(
+						'sanitize_callback' => 'wp_filter_post_kses',
+					),
 				),
-			),
-			'schedule'       => array(
-				'description'  => __( 'The recurrence pattern for the event: none,daily,weekly,monthly,yearly,custom.' ),
-				'type'         => 'string',
-				'context'      => array( 'view', 'edit' ),
-				'arg_options'  => array(
-					'sanitize_callback' => 'wp_filter_post_kses',
+				'schedule'       => array(
+					'description'  => __( 'The recurrence pattern for the event: none,daily,weekly,monthly,yearly,custom.' ),
+					'type'         => 'string',
+					'context'      => array( 'view', 'edit' ),
+					'arg_options'  => array(
+						'sanitize_callback' => 'wp_filter_post_kses',
+					),
 				),
-			),
-			'schedule_meta'       => array(
-				'description'  => __( 'how to a handle array?.' ),
-				'type'         => 'string',
-				'context'      => array( 'view', 'edit' ),
-				'arg_options'  => array(
-					'sanitize_callback' => 'wp_filter_post_kses',
+				'schedule_meta'       => array(
+					'description'  => __( 'how to a handle array?.' ),
+					'type'         => 'string',
+					'context'      => array( 'view', 'edit' ),
+					'arg_options'  => array(
+						'sanitize_callback' => 'wp_filter_post_kses',
+					),
 				),
-			),
-			'frequency'       => array(
-				'description'  => __( 'How frequent the recurrence is' ),
-				'type'         => 'integer',
-				'context'      => array( 'view', 'edit' ),
-				'arg_options'  => array(
-					'sanitize_callback' => 'wp_filter_post_kses',
+				'frequency'       => array(
+					'description'  => __( 'How frequent the recurrence is' ),
+					'type'         => 'integer',
+					'context'      => array( 'view', 'edit' ),
+					'arg_options'  => array(
+						'sanitize_callback' => 'wp_filter_post_kses',
+					),
 				),
-			),
-			'until'       => array(
-				'description'  => __( 'Repeat the event until this date-time (according to schedule and frequency).' ),
-				'type'         => 'string',
-				'context'      => array( 'view', 'edit' ),
-				'arg_options'  => array(
-					'sanitize_callback' => 'wp_filter_post_kses',
+				'until'       => array(
+					'description'  => __( 'Repeat the event until this date-time (according to schedule and frequency).' ),
+					'type'         => 'string',
+					'context'      => array( 'view', 'edit' ),
+					'arg_options'  => array(
+						'sanitize_callback' => 'wp_filter_post_kses',
+					),
 				),
-			),
-			/*'schedule_last' => array(
-				'description'  => __( 'The start date-time of the last occurrenceof the event.' ),
-				'type'         => 'string',
-				'context'      => array( 'view' ),
-				'arg_options'  => array(
-					'sanitize_callback' => 'wp_filter_post_kses',
+				/*
+				'schedule_last' => array(
+				   'description'  => __( 'The start date-time of the last occurrenceof the event.' ),
+				   'type'         => 'string',
+				   'context'      => array( 'view' ),
+				   'arg_options'  => array(
+					   'sanitize_callback' => 'wp_filter_post_kses',
+				   ),
+				),*/
+				'include' => array(
+					'description'  => __( 'Array of date-times to add to the event\' schedule.' ),
+					'type'         => 'string',
+					'context'      => array( 'view', 'edit' ),
+					'arg_options'  => array(
+						'sanitize_callback' => 'wp_filter_post_kses',
+					),
 				),
-			),*/
-			'include' => array(
-				'description'  => __( 'Array of date-times to add to the event\' schedule.' ),
-				'type'         => 'string',
-				'context'      => array( 'view', 'edit' ),
-				'arg_options'  => array(
-					'sanitize_callback' => 'wp_filter_post_kses',
+				'exclude' => array(
+					'description'  => __( 'Array of date-times to remove from the event\' schedule.' ),
+					'type'         => 'string',
+					'context'      => array( 'view', 'edit' ),
+					'arg_options'  => array(
+						'sanitize_callback' => 'wp_filter_post_kses',
+					),
 				),
-			),
-			'exclude' => array(
-				'description'  => __( 'Array of date-times to remove from the event\' schedule.' ),
-				'type'         => 'string',
-				'context'      => array( 'view', 'edit' ),
-				'arg_options'  => array(
-					'sanitize_callback' => 'wp_filter_post_kses',
-				),
-			),
-			/*'number_occurrences' => array(
+			 /*
+			 'number_occurrences' => array(
 				'description'  => __( 'Repeat the event for this number of occurrences (according to schedule and frequency). Ignored if until is set.' ),
 				'type'         => 'integer',
 				'context'      => array( 'edit' ),
 				'arg_options'  => array(
 					'sanitize_callback' => 'wp_filter_post_kses',
 				),
-			),*/
-		), $schema['properties'] );
+			 ),*/
+			),
+			$schema['properties']
+		);
 		return $schema;
 	}
 }
