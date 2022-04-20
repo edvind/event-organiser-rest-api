@@ -59,7 +59,7 @@ add_filter(
 );
 
 add_filter(
-	'eventorganiser_register_taxonomy_event-categories',
+	'eventorganiser_register_taxonomy_event-category',
 	function( $args ) {
 		$args = array_merge(
 			array(
